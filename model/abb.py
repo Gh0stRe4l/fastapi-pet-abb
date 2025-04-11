@@ -1,6 +1,8 @@
+from model.pet import Pet
+
 class Node:
-    def __init__(self, pet_data):
-        self.pet = pet_data
+    def __init__(self, pet: Pet):
+        self.pet = pet
         self.left = None
         self.right = None
 
@@ -8,71 +10,93 @@ class ABB:
     def __init__(self):
         self.root = None
 
-    def insert(self, new_pet):
-        def _insert(current_node, new_pet_data):
-            if current_node is None:
-                return Node(new_pet_data)
-            if new_pet_data.id < current_node.pet.id:
-                current_node.left = _insert(current_node.left, new_pet_data)
-            elif new_pet_data.id > current_node.pet.id:
-                current_node.right = _insert(current_node.right, new_pet_data)
-            return current_node
+    def insert(self, root, pet: Pet):
+        if root is None:
+            return Node(pet)
+        if pet.pet_id < root.pet.pet_id:
+            root.left = self.insert(root.left, pet)
+        elif pet.pet_id > root.pet.pet_id:
+            root.right = self.insert(root.right, pet)
+        return root
 
-        self.root = _insert(self.root, new_pet)
+    def search(self, root, pet_id):
+        if root is None or root.pet.pet_id == pet_id:
+            return root
+        if pet_id < root.pet.pet_id:
+            return self.search(root.left, pet_id)
+        return self.search(root.right, pet_id)
 
-    def get_all(self):
-        result = []
+    def update(self, root, pet: Pet):
+        node = self.search(root, pet.pet_id)
+        if node:
+            node.pet = pet
+        return node
 
-        def _in_order(node):
-            if node:
-                _in_order(node.left)
-                result.append(node.pet)
-                _in_order(node.right)
-
-        _in_order(self.root)
-        return result
-
-    def search(self, search_id):
-        def _search(node, target_id):
-            if node is None:
-                return None
-            if target_id == node.pet.id:
-                return node.pet
-            elif target_id < node.pet.id:
-                return _search(node.left, target_id)
-            else:
-                return _search(node.right, target_id)
-
-        return _search(self.root, search_id)
-
-    def delete(self, target_id):
-        def _delete(node, id_to_delete):
-            if node is None:
-                return node, False
-            if id_to_delete < node.pet.id:
-                left_child, deleted_flag = _delete(node.left, id_to_delete)
-                node.left = left_child
-                return node, deleted_flag
-            elif id_to_delete > node.pet.id:
-                right_child, deleted_flag = _delete(node.right, id_to_delete)
-                node.right = right_child
-                return node, deleted_flag
-            else:
-                if node.left is None:
-                    return node.right, True
-                elif node.right is None:
-                    return node.left, True
-                min_node = self._min_value_node(node.right)
-                node.pet = min_node.pet
-                node.right, _ = _delete(node.right, min_node.pet.id)
-                return node, True
-
-        self.root, final_deleted = _delete(self.root, target_id)
-        return final_deleted
+    def delete(self, root, pet_id):
+        if root is None:
+            return root
+        if pet_id < root.pet.pet_id:
+            root.left = self.delete(root.left, pet_id)
+        elif pet_id > root.pet.pet_id:
+            root.right = self.delete(root.right, pet_id)
+        else:
+            if root.left is None:
+                return root.right
+            elif root.right is None:
+                return root.left
+            temp = self._min_value_node(root.right)
+            root.pet = temp.pet
+            root.right = self.delete(root.right, temp.pet.pet_id)
+        return root
 
     @staticmethod
     def _min_value_node(node):
         current = node
-        while current.left is not None:
+        while current.left:
             current = current.left
         return current
+
+    def inorder(self, root, result):
+        if root:
+            self.inorder(root.left, result)
+            result.append(root.pet)
+            self.inorder(root.right, result)
+
+    def preorder(self, root, result):
+        if root:
+            result.append(root.pet)
+            self.preorder(root.left, result)
+            self.preorder(root.right, result)
+
+    def postorder(self, root, result):
+        if root:
+            self.postorder(root.left, result)
+            self.postorder(root.right, result)
+            result.append(root.pet)
+
+    def id_exists(self, root, pet_id):
+        return self.search(root, pet_id) is not None
+
+    def count_by_breed(self, root, breed):
+        if root is None:
+            return 0
+        count = 1 if root.pet.breed == breed else 0
+        count += self.count_by_breed(root.left, breed)
+        count += self.count_by_breed(root.right, breed)
+        return count
+
+    def get_average_fleas_by_gender(self, root, gender):
+        count, total = self._average_fleas_by_gender(root, gender.lower())
+        return total / count if count > 0 else 0
+
+    def _average_fleas_by_gender(self, root, gender_target):
+        if root is None:
+            return 0, 0
+        count = 0
+        total = 0
+        if root.pet.gender.lower() == gender_target:
+            count = 1
+            total = root.pet.fleas
+        left_count, left_total = self._average_fleas_by_gender(root.left, gender_target)
+        right_count, right_total = self._average_fleas_by_gender(root.right, gender_target)
+        return count + left_count + right_count, total + left_total + right_total

@@ -1,6 +1,8 @@
 from pydantic import BaseModel
 
 class Pet(BaseModel):
-    id: int
+    pet_id: int
     name: str
-    type: str
+    breed: str
+    gender: str
+    fleas: int
